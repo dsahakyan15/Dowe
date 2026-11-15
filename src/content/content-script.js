@@ -247,16 +247,17 @@
       mode: settings.defaultMode,
       level: settings.defaultLevel,
       skipGlossary: false,
+      focus: true,
     });
   }
 
-  async function runLookup({ mode, level, skipGlossary }) {
+  async function runLookup({ mode, level, skipGlossary, focus = false }) {
     if (!currentSelection) return;
     const selection = currentSelection;
     lastLookupParams = { mode, level, skipGlossary };
 
     icon.hide();
-    popup.showLoading({ text: selection.text });
+    popup.showLoading({ text: selection.text, focus, mode: mode || settings.defaultMode });
     popup.position(selection.rect);
 
     if (selection.tooLong) {
@@ -347,35 +348,46 @@
 
   let lastEntryId = null;
   let lastAnswerData = null;
+  let savePending = false;
 
   async function onToggleSave() {
-    if (!lastAnswerData) return;
-    if (lastEntryId) {
-      await chrome.runtime
-        .sendMessage({ type: "UNSAVE_ENTRY", entryId: lastEntryId })
-        .catch(() => {});
-      lastEntryId = null;
-    } else {
-      const res = await chrome.runtime
-        .sendMessage({
+    if (!lastAnswerData || savePending) return;
+    const answerData = lastAnswerData;
+    const entryId = lastEntryId;
+    const lookupId = activeRequestId;
+    savePending = true;
+    popup.setStatus(STRINGS[entryId ? "removing" : "saving"]);
+    try {
+      let nextEntryId = null;
+      if (entryId) {
+        const res = await chrome.runtime.sendMessage({ type: "UNSAVE_ENTRY", entryId });
+        if (!res?.ok) throw new Error("unsave failed");
+      } else {
+        const res = await chrome.runtime.sendMessage({
           type: "SAVE_ENTRY",
-          text: lastAnswerData.term,
-          mode: lastAnswerData.mode,
-          level: lastAnswerData.level,
-          answer: lastAnswerData.answer,
-          contextSentence: lastAnswerData.contextSentence,
+          text: answerData.term,
+          mode: answerData.mode,
+          level: answerData.level,
+          answer: answerData.answer,
+          contextSentence: answerData.contextSentence,
           url: window.location.href,
           title: document.title,
-        })
-        .catch(() => null);
-      lastEntryId = res?.entryId || null;
+        });
+        if (!res?.ok || !res.entryId) throw new Error("save failed");
+        nextEntryId = res.entryId;
+      }
+      if (lastAnswerData !== answerData || activeRequestId !== lookupId) return;
+      lastEntryId = nextEntryId;
+      if (popup.isVisible()) {
+        popup.showSuccess({ ...answerData, saved: !!lastEntryId });
+        popup.setStatus(STRINGS[entryId ? "removed" : "saved"]);
+      }
+    } catch {
+      if (lastAnswerData === answerData && activeRequestId === lookupId && popup.isVisible())
+        popup.setStatus(STRINGS[entryId ? "unsaveFailed" : "saveFailed"]);
+    } finally {
+      savePending = false;
     }
-    popup.showSuccess({
-      answer: lastAnswerData.answer,
-      mode: lastAnswerData.mode,
-      level: lastAnswerData.level,
-      saved: !!lastEntryId,
-    });
   }
 
   function cancelInFlight() {

@@ -67,6 +67,53 @@ async function testConnection({ provider, apiKey, model, customEndpoint }) {
   return chrome.runtime.sendMessage({ type: "TEST_CONNECTION", provider, apiKey, model, customEndpoint });
 }
 
+// A response validates only the exact inputs submitted by that test.
+function bindConnectionTest({ fields, read, button, status, finish, onSuccess }) {
+  let generation = 0;
+  let tested = null;
+  const fingerprint = () => JSON.stringify(read());
+  function invalidate() {
+    generation++;
+    tested = null;
+    status.textContent = "";
+    button.disabled = false;
+    if (finish) finish.disabled = true;
+  }
+  for (const field of fields) {
+    field.addEventListener("input", invalidate);
+    field.addEventListener("change", invalidate);
+  }
+  button.addEventListener("click", async () => {
+    const config = read();
+    const submitted = JSON.stringify(config);
+    const token = ++generation;
+    tested = null;
+    button.disabled = true;
+    if (finish) finish.disabled = true;
+    status.className = "dowe-small";
+    status.textContent = t("connectionTesting");
+    try {
+      const result = await testConnection(config);
+      if (token !== generation || submitted !== fingerprint()) return;
+      if (!result?.ok) throw new Error(result?.message || t("onboardingTestFailed"));
+      tested = submitted;
+      status.textContent = result.model ? `${t("onboardingTestSuccess")} (${result.model})` : t("onboardingTestSuccess");
+      status.className = "dowe-small dowe-test-ok";
+      if (finish) finish.disabled = false;
+      await onSuccess?.(result);
+    } catch (error) {
+      if (token !== generation || submitted !== fingerprint()) return;
+      tested = null;
+      status.textContent = error.message || t("onboardingTestFailed");
+      status.className = "dowe-small dowe-test-fail";
+      if (finish) finish.disabled = true;
+    } finally {
+      if (token === generation) button.disabled = false;
+    }
+  });
+  return () => tested !== null && tested === fingerprint();
+}
+
 // ---------------- Onboarding ----------------
 
 function initOnboardingStrings() {
@@ -78,7 +125,7 @@ function initOnboardingStrings() {
   document.getElementById("ob-skip-btn").textContent = t("onboardingSkip");
   document.getElementById("ob-finish-btn").textContent = t("onboardingFinish");
   document.getElementById("ob-skip-warning").textContent = t("onboardingSkipWarning");
-  document.getElementById("ob-skip-warning").hidden = false;
+  document.getElementById("ob-skip-warning").hidden = true;
   document.getElementById("ob-hint").textContent = t("onboardingHint");
 }
 
@@ -133,30 +180,23 @@ async function showOnboarding(settings) {
     testStatus.textContent = "";
   });
 
-  testBtn.addEventListener("click", async () => {
-    testStatus.textContent = "…";
-    testStatus.className = "dowe-small";
-    const result = await testConnection({
+  const connectionValid = bindConnectionTest({
+    fields: [providerSelect, apiKeyInput, endpointInput],
+    button: testBtn, status: testStatus, finish: finishBtn,
+    read: () => ({
       provider: providerSelect.value,
       apiKey: apiKeyInput.value.trim(),
       model: "",
       customEndpoint: endpointInput.value.trim(),
-    });
-    if (result?.ok) {
-      testStatus.textContent = result.model
-        ? `${t("onboardingTestSuccess")} (${result.model})`
-        : t("onboardingTestSuccess");
-      testStatus.className = "dowe-small dowe-test-ok";
-      finishBtn.disabled = false;
-    } else {
-      testStatus.textContent = result?.message || t("onboardingTestFailed");
-      testStatus.className = "dowe-small dowe-test-fail";
-      finishBtn.disabled = true;
-    }
+    }),
   });
 
-  async function finishOnboarding() {
-    await setSettings({
+  async function finishOnboarding(skip = false) {
+    if (!skip && !connectionValid()) return;
+    finishBtn.disabled = true;
+    skipBtn.disabled = true;
+    try {
+      await setSettings({
       provider: providerSelect.value,
       apiKey: apiKeyInput.value.trim(),
       customEndpoint: endpointInput.value.trim(),
@@ -164,18 +204,23 @@ async function showOnboarding(settings) {
       defaultMode: defaultModeSelect.value,
       defaultLevel: defaultLevelSelect.value,
       onboardingComplete: true,
-    });
-    document.getElementById("onboarding").hidden = true;
-    hint.hidden = false;
-    setTimeout(async () => {
-      hint.hidden = true;
+      });
       const fresh = await getSettings();
       await showSettingsView(fresh);
-    }, 2500);
+      hint.hidden = false;
+      hint.tabIndex = -1;
+      hint.focus();
+    } catch {
+      testStatus.textContent = t("settingsSaveFailed");
+      testStatus.className = "dowe-small dowe-test-fail";
+      finishBtn.disabled = !connectionValid();
+    } finally {
+      skipBtn.disabled = false;
+    }
   }
 
-  finishBtn.addEventListener("click", finishOnboarding);
-  skipBtn.addEventListener("click", finishOnboarding);
+  finishBtn.addEventListener("click", () => finishOnboarding());
+  skipBtn.addEventListener("click", () => finishOnboarding(true));
 
   document.getElementById("onboarding").hidden = false;
 }
@@ -257,7 +302,12 @@ async function showSettingsView(settings) {
 
   let toastTimer = null;
   async function persist(patch) {
-    await setSettings(patch);
+    try {
+      await setSettings(patch);
+      savedToast.textContent = t("settingsSaved");
+    } catch {
+      savedToast.textContent = t("settingsSaveFailed");
+    }
     savedToast.hidden = false;
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => (savedToast.hidden = true), 1800);
@@ -271,7 +321,11 @@ async function showSettingsView(settings) {
   modelInput.addEventListener("change", () => persist({ model: modelInput.value.trim() }));
   endpointInput.addEventListener("change", async () => {
     const url = endpointInput.value.trim();
-    if (url) await ensureHostPermission(url);
+    if (url && !(await ensureHostPermission(url))) {
+      testStatus.textContent = "Permission to access that endpoint was denied. Test connection to try again.";
+      testStatus.className = "dowe-small dowe-test-fail";
+      return;
+    }
     persist({ customEndpoint: url });
   });
   targetLangSelect.addEventListener("change", () => persist({ targetLanguage: targetLangSelect.value }));
@@ -290,28 +344,24 @@ async function showSettingsView(settings) {
     chrome.tabs.create({ url: "chrome://extensions/shortcuts" });
   });
 
-  testBtn.addEventListener("click", async () => {
-    testStatus.textContent = "…";
-    testStatus.className = "dowe-small";
-    const result = await testConnection({
+  bindConnectionTest({
+    fields: [providerSelect, apiKeyInput, modelInput, endpointInput],
+    button: testBtn, status: testStatus,
+    read: () => ({
       provider: providerSelect.value,
       apiKey: apiKeyInput.value.trim(),
       model: modelInput.value.trim(),
       customEndpoint: endpointInput.value.trim(),
-    });
-    if (result?.ok) {
-      testStatus.textContent = result.model
-        ? `${t("onboardingTestSuccess")} (${result.model})`
-        : t("onboardingTestSuccess");
-      testStatus.className = "dowe-small dowe-test-ok";
+    }),
+    onSuccess: async (result) => {
+      const patch = {};
+      if (providerSelect.value === "custom") patch.customEndpoint = endpointInput.value.trim();
       if (!modelInput.value.trim() && result.model) {
         modelInput.value = result.model;
-        await persist({ model: result.model });
+        patch.model = result.model;
       }
-    } else {
-      testStatus.textContent = result?.message || t("onboardingTestFailed");
-      testStatus.className = "dowe-small dowe-test-fail";
-    }
+      if (Object.keys(patch).length) await persist(patch);
+    },
   });
 
   addDisabledSiteBtn.addEventListener("click", async () => {

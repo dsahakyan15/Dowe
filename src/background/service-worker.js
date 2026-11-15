@@ -219,12 +219,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       createdAt: new Date().toISOString(),
       starred: false,
     };
-    addEntry(entry).then(() => sendResponse({ ok: true, entryId: entry.id }));
+    addEntry(entry)
+      .then(() => sendResponse({ ok: true, entryId: entry.id }))
+      .catch(() => sendResponse({ ok: false }));
     return true;
   }
 
   if (message?.type === "UNSAVE_ENTRY") {
-    deleteEntry(message.entryId).then(() => sendResponse({ ok: true }));
+    deleteEntry(message.entryId)
+      .then(() => sendResponse({ ok: true }))
+      .catch(() => sendResponse({ ok: false }));
     return true;
   }
 

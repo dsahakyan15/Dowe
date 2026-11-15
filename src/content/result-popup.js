@@ -62,7 +62,7 @@
     const style = el("style");
     style.textContent = POPUP_STYLE;
     shadowRoot.appendChild(style);
-    const root = el("section", "dowe-popup", { "aria-label": t("appName") });
+    const root = el("section", "dowe-popup", { "aria-label": t("appName"), tabindex: "-1" });
     root.style.display = "none";
     const header = el("div", "dowe-popup-header");
     const brand = el("span", "dowe-brand dowe-popup-brand");
@@ -72,7 +72,8 @@
     });
     brand.append(logo, document.createTextNode("dowe"));
     const modeSelect = el("select", "dowe-select dowe-popup-mode", {
-      "aria-label": t("settingsDefaultMode"),
+      "aria-label": t("popupMode"),
+      "data-action": "mode",
     });
     for (const mode of MODES) {
       const option = el("option", "", { value: mode });
@@ -82,6 +83,7 @@
     const closeBtn = el("button", "dowe-btn dowe-btn-icon dowe-popup-close", {
       type: "button",
       "aria-label": t("close"),
+      "data-action": "close",
     });
     closeBtn.textContent = "×";
     closeBtn.addEventListener("click", () => callbacks.onClose?.());
@@ -89,8 +91,9 @@
     const selectedText = el("h2", "dowe-popup-selected-text");
     const body = el("div", "dowe-popup-body");
     const footer = el("div", "dowe-popup-footer");
-    const status = el("div", "dowe-popup-status", { role: "status" });
-    root.append(header, selectedText, body, footer, status);
+    const status = el("div", "dowe-popup-status", { role: "status", "aria-live": "polite", "aria-atomic": "true" });
+    const announcement = el("span", "dowe-sr-only", { role: "status", "aria-live": "polite", "aria-atomic": "true" });
+    root.append(header, selectedText, body, footer, status, announcement);
     shadowRoot.appendChild(root);
     root.addEventListener("mousedown", (event) => event.stopPropagation());
     root.addEventListener("keydown", (event) => {
@@ -106,6 +109,8 @@
     let currentMode = MODES[0];
     let currentLevel = "simple";
     let selectionRect = null;
+    let pendingFocus = null;
+    let returnFocus = null;
     modeSelect.addEventListener("change", () => {
       currentMode = modeSelect.value;
       callbacks.onModeChange?.(currentMode);
@@ -120,14 +125,23 @@
       return node;
     }
     function reset() {
+      const active = shadowRoot.activeElement;
+      if (active && active !== root && root.contains(active)) {
+        pendingFocus = active.dataset.action || "card";
+        if (footer.contains(active) || body.contains(active)) root.focus({ preventScroll: true });
+      }
       body.replaceChildren();
       footer.replaceChildren();
       status.textContent = "";
-      modeSelect.hidden = true;
     }
     function show() {
       root.style.display = "flex";
       if (selectionRect) position(selectionRect);
+      if (pendingFocus && root.contains(shadowRoot.activeElement)) {
+        const target = root.querySelector(`[data-action="${pendingFocus}"]`);
+        (target && !target.hidden ? target : root).focus({ preventScroll: true });
+      }
+      if (root.getAttribute("aria-busy") !== "true") pendingFocus = null;
     }
     function buildActionRow({
       showModeLevel,
@@ -139,15 +153,14 @@
       modeSelect.value = currentMode;
       if (showModeLevel) {
         const levelBtn = button(
-          t(currentLevel === "simple" ? "levelSimple" : "levelTechnical") +
-            " ▾",
+          t("popupLevel") + ": " + t(currentLevel === "simple" ? "levelSimple" : "levelTechnical"),
           "dowe-popup-level",
           () => {
             currentLevel = currentLevel === "simple" ? "technical" : "simple";
             callbacks.onLevelChange?.(currentLevel);
           },
         );
-        levelBtn.setAttribute("aria-label", t("settingsDefaultLevel"));
+        levelBtn.dataset.action = "level";
         footer.appendChild(levelBtn);
       }
       footer.appendChild(el("span", "dowe-popup-spacer"));
@@ -158,14 +171,15 @@
           () => callbacks.onToggleSave?.(),
         );
         saveBtn.setAttribute("aria-pressed", String(saved));
+        saveBtn.dataset.action = "save";
         footer.appendChild(saveBtn);
       }
       const more = el("details", "dowe-popup-more");
       const summary = el("summary");
+      summary.dataset.action = "more";
       summary.textContent = t("more");
       const menu = el("div", "dowe-popup-menu");
-      menu.appendChild(
-        button(t("copy"), "", async () => {
+      const copyBtn = button(t("copy"), "", async () => {
           more.open = false;
           try {
             await navigator.clipboard.writeText(currentAnswerText);
@@ -175,8 +189,9 @@
             status.textContent = t("copyFailed");
           }
           if (isVisible()) show();
-        }),
-      );
+        });
+      copyBtn.dataset.action = "copy";
+      footer.appendChild(copyBtn);
       if (showRegenerate)
         menu.appendChild(
           button(t("regenerate"), "", () => {
@@ -197,17 +212,23 @@
       more.append(summary, menu);
       footer.appendChild(more);
     }
-    function showLoading({ text }) {
+    function showLoading({ text, focus = false, mode }) {
+      if (MODES.includes(mode)) currentMode = mode;
+      modeSelect.value = currentMode;
+      if (focus && !root.contains(shadowRoot.activeElement)) returnFocus = document.activeElement;
       selectedText.textContent = text;
       selectedText.title = text;
       reset();
       root.setAttribute("aria-busy", "true");
+      modeSelect.hidden = false;
+      announcement.textContent = t("loading");
       const wrap = el("div", "dowe-popup-loading", { role: "status" });
       const label = el("span");
       label.textContent = t("loading");
       wrap.append(el("div", "dowe-spinner", { "aria-hidden": "true" }), label);
       body.appendChild(wrap);
       show();
+      if (focus) root.focus({ preventScroll: true });
     }
     function renderAnswer({
       answer,
@@ -242,6 +263,7 @@
       answerEl.textContent = answer;
       body.appendChild(answerEl);
       buildActionRow({ showModeLevel, showSave, saved, showRegenerate });
+      announcement.textContent = t("answerReady");
       show();
     }
     function showSuccess({ answer, mode, level, saved = true }) {
@@ -261,6 +283,8 @@
     }
     function showError({ message, showRetry, showOpenSettings }) {
       reset();
+      if (shadowRoot.activeElement === modeSelect) root.focus({ preventScroll: true });
+      modeSelect.hidden = true;
       root.setAttribute("aria-busy", "false");
       const msg = el("div", "dowe-error-text dowe-popup-answer", {
         role: "alert",
@@ -286,9 +310,13 @@
       });
     }
     function hide() {
+      const restore = root.contains(shadowRoot.activeElement);
       root.style.display = "none";
       const more = footer.querySelector("details");
       if (more) more.open = false;
+      pendingFocus = null;
+      if (restore && returnFocus?.isConnected) returnFocus.focus({ preventScroll: true });
+      returnFocus = null;
     }
     function isVisible() {
       return root.style.display !== "none";
@@ -321,6 +349,7 @@
       hide,
       isVisible,
       position,
+      setStatus(message) { status.textContent = message; },
     };
   }
   window.__DowePopup = { createResultPopup };

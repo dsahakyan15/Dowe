@@ -21,6 +21,14 @@ export const STRINGS = {
   more: "More",
   openDictionary: "Open dictionary",
   copyFailed: "Couldn't copy. Select the answer to copy it manually.",
+  popupMode: "Mode",
+  popupLevel: "Level",
+  answerReady: "Answer ready.",
+  saving: "Saving…",
+  removing: "Removing…",
+  saveFailed: "Couldn't save. Try Save again.",
+  unsaveFailed: "Couldn't remove. Try Saved again.",
+  removed: "Removed from dictionary.",
 
   // Errors
   errorNoApiKey: "Add an API key to start using Dowe.",
@@ -56,7 +64,9 @@ export const STRINGS = {
   onboardingSkipWarning: "Lookups won't work until you add a valid API key.",
   onboardingFinish: "Finish setup",
   onboardingSkip: "Skip for now",
-  onboardingHint: "Try selecting some text on this page.",
+  onboardingHint: "Open a webpage, select a word or sentence, then click Dowe or press Alt+E.",
+  connectionTesting: "Testing connection…",
+  settingsSaveFailed: "Couldn't save settings. Please try the change again.",
 
   // Dictionary
   dictionaryTitle: "Dictionary",
@@ -69,6 +79,13 @@ export const STRINGS = {
   dictionaryUnstar: "Unstar",
   dictionaryDelete: "Delete",
   dictionaryRerun: "Re-run",
+  dictionaryNoMatches: "No matching entries. Try another search or clear the filters.",
+  dictionaryClearFilters: "Clear filters",
+  dictionaryDeleteConfirm: "Delete this dictionary entry? This cannot be undone.",
+  dictionaryRerunning: "Getting a new answer…",
+  dictionaryRerunSaved: "New answer shown. Saved as a new dictionary entry.",
+  dictionaryRerunUnsaved: "New answer shown. Not saved — auto-save is off.",
+  dictionaryRerunGlossary: "Answer from team glossary. Original saved entry unchanged.",
 
   // Dashboard
   dashboardTitle: "Frequency",

@@ -17,6 +17,7 @@ let filterMode = "all";
 let searchQuery = "";
 let sortMode = "date-desc";
 let expandedId = null;
+const rerunResults = new Map();
 
 const entriesList = document.getElementById("entries-list");
 const emptyState = document.getElementById("empty-state");
@@ -25,6 +26,8 @@ const sortSelect = document.getElementById("sort-select");
 const modeFilterChips = document.getElementById("mode-filter-chips");
 const entryTemplate = document.getElementById("entry-template");
 const dashboardRoot = document.getElementById("dashboard-root");
+const dictionaryStatus = document.getElementById("dictionary-status");
+const clearFiltersBtn = document.getElementById("clear-filters-btn");
 
 function capitalize(s) {
   return s.charAt(0).toUpperCase() + s.slice(1);
@@ -98,9 +101,14 @@ function renderModeChips() {
     btn.textContent = label;
     btn.className = value === filterMode ? "active" : "";
     btn.setAttribute("aria-pressed", String(value === filterMode));
+    btn.dataset.mode = value;
     btn.addEventListener("click", () => {
       filterMode = value;
-      renderModeChips();
+      for (const chip of modeFilterChips.children) {
+        const active = chip.dataset.mode === value;
+        chip.classList.toggle("active", active);
+        chip.setAttribute("aria-pressed", String(active));
+      }
       renderList();
     });
     modeFilterChips.appendChild(btn);
@@ -108,18 +116,30 @@ function renderModeChips() {
 }
 
 function renderList() {
+  const active = document.activeElement;
+  const focusedEntry = active?.closest(".dowe-entry");
+  const focusedId = focusedEntry?.dataset.entryId;
+  const focusedAction = active?.dataset.action;
   const filtered = getFilteredSortedEntries();
   entriesList.innerHTML = "";
   emptyState.hidden = filtered.length > 0;
-  emptyState.textContent = t("dictionaryEmpty");
+  emptyState.textContent = t(allEntries.length ? "dictionaryNoMatches" : "dictionaryEmpty");
+  clearFiltersBtn.hidden = filtered.length > 0 || !allEntries.length;
+  document.getElementById("export-glossary-btn").textContent = searchQuery || filterMode !== "all"
+    ? "Export filtered entries" : t("dictionaryExport");
 
   for (const entry of filtered) {
     entriesList.appendChild(renderEntryNode(entry));
+  }
+  if (focusedId && focusedAction) {
+    const row = Array.from(entriesList.children).find(n => n.dataset.entryId === focusedId);
+    (row?.querySelector(`[data-action="${focusedAction}"]`) || searchInput).focus({ preventScroll: true });
   }
 }
 
 function renderEntryNode(entry) {
   const node = entryTemplate.content.firstElementChild.cloneNode(true);
+  node.dataset.entryId = entry.id;
   const summaryBtn = node.querySelector(".dowe-entry-summary");
   const termEl = node.querySelector(".dowe-entry-term");
   const snippetEl = node.querySelector(".dowe-entry-snippet");
@@ -132,6 +152,7 @@ function renderEntryNode(entry) {
   const starBtn = node.querySelector(".dowe-entry-star-btn");
   const rerunBtn = node.querySelector(".dowe-entry-rerun-btn");
   const deleteBtn = node.querySelector(".dowe-entry-delete-btn");
+  for (const [button, action] of [[summaryBtn, "summary"], [starBtn, "star"], [rerunBtn, "rerun"], [deleteBtn, "delete"]]) button.dataset.action = action;
 
   termEl.textContent = entry.term;
   snippetEl.textContent = entry.answer;
@@ -139,6 +160,12 @@ function renderEntryNode(entry) {
   dateEl.textContent = formatDate(entry.createdAt);
   starEl.textContent = entry.starred ? "★" : "";
   starEl.classList.toggle("starred", !!entry.starred);
+  if (entry.starred) {
+    const label = document.createElement("span");
+    label.className = "dowe-sr-only";
+    label.textContent = "Starred";
+    summaryBtn.appendChild(label);
+  }
 
   answerEl.textContent = entry.answer;
   sourceEl.textContent = entry.sourceUrl
@@ -150,6 +177,26 @@ function renderEntryNode(entry) {
     : t("dictionaryStar");
   rerunBtn.textContent = t("dictionaryRerun");
   deleteBtn.textContent = t("dictionaryDelete");
+  const result = rerunResults.get(entry.id);
+  if (result?.answer) answerEl.textContent = result.answer;
+  if (result) {
+    const feedback = document.createElement("p");
+    feedback.className = "dowe-small dowe-muted";
+    feedback.textContent = result.message;
+    detail.appendChild(feedback);
+    if (result.code === "invalid_key" || result.code === "no_api_key") {
+      const settingsBtn = document.createElement("button");
+      settingsBtn.type = "button";
+      settingsBtn.className = "dowe-btn";
+      settingsBtn.textContent = t("openSettings");
+      settingsBtn.addEventListener("click", () => chrome.runtime.openOptionsPage());
+      detail.appendChild(settingsBtn);
+    }
+    if (result.pending) {
+      rerunBtn.textContent = t("dictionaryRerunning");
+      rerunBtn.setAttribute("aria-disabled", "true");
+    }
+  }
 
   const isExpanded = expandedId === entry.id;
   detail.hidden = !isExpanded;
@@ -167,23 +214,36 @@ function renderEntryNode(entry) {
 
   starBtn.addEventListener("click", async (e) => {
     e.stopPropagation();
-    await updateEntry(entry.id, { starred: !entry.starred });
-    await reloadEntries();
+    try {
+      await updateEntry(entry.id, { starred: !entry.starred });
+      await reloadEntries();
+    } catch { dictionaryStatus.textContent = t("errorUnknown"); }
   });
 
   deleteBtn.addEventListener("click", async (e) => {
     e.stopPropagation();
-    await deleteEntry(entry.id);
-    if (expandedId === entry.id) expandedId = null;
-    await reloadEntries();
+    if (!confirm(t("dictionaryDeleteConfirm"))) return;
+    const index = Array.from(entriesList.children).indexOf(node);
+    try {
+      await deleteEntry(entry.id);
+      if (expandedId === entry.id) expandedId = null;
+      rerunResults.delete(entry.id);
+      await reloadEntries();
+      const next = entriesList.children[Math.min(index, entriesList.children.length - 1)];
+      (next?.querySelector(".dowe-entry-summary") || searchInput).focus({ preventScroll: true });
+      dictionaryStatus.textContent = "Entry deleted.";
+    } catch { dictionaryStatus.textContent = t("errorUnknown"); }
   });
 
   rerunBtn.addEventListener("click", async (e) => {
     e.stopPropagation();
-    rerunBtn.disabled = true;
-    rerunBtn.textContent = "…";
+    if (rerunResults.get(entry.id)?.pending) return;
+    const previous = rerunResults.get(entry.id);
+    rerunResults.set(entry.id, { ...previous, pending: true, message: t("dictionaryRerunning") });
+    dictionaryStatus.textContent = t("dictionaryRerunning");
+    renderList();
     try {
-      await chrome.runtime.sendMessage({
+      const response = await chrome.runtime.sendMessage({
         type: "LOOKUP",
         requestId: crypto.randomUUID(),
         text: entry.term,
@@ -194,7 +254,19 @@ function renderEntryNode(entry) {
         title: entry.sourceTitle,
         skipGlossary: false,
       });
+      if (response?.status !== "success") {
+        rerunResults.set(entry.id, { ...previous, message: response?.message || t("errorUnknown"), code: response?.code });
+      } else {
+        rerunResults.set(entry.id, {
+          answer: response.answer,
+          message: t(response.fromGlossary ? "dictionaryRerunGlossary" : response.entryId ? "dictionaryRerunSaved" : "dictionaryRerunUnsaved"),
+        });
+      }
+    } catch {
+      rerunResults.set(entry.id, { ...previous, message: t("errorNetwork") });
     } finally {
+      // A filtered or collapsed row must not be reopened by a late response.
+      dictionaryStatus.textContent = rerunResults.get(entry.id)?.message || "";
       await reloadEntries();
     }
   });
@@ -260,6 +332,14 @@ function initTabs() {
 }
 
 function initControls() {
+  clearFiltersBtn.addEventListener("click", () => {
+    searchInput.value = "";
+    searchQuery = "";
+    filterMode = "all";
+    renderModeChips();
+    renderList();
+    searchInput.focus();
+  });
   searchInput.addEventListener("input", () => {
     searchQuery = searchInput.value.trim();
     renderList();

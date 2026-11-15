@@ -74,7 +74,7 @@
   gap: 8px;
   padding: 5px 0 9px;
   margin-bottom: 8px;
-  border-bottom: 1px solid var(--dowe-border);
+  border-bottom: 1px solid var(--dowe-field-border);
 }
 .dowe-dict-controls .dowe-input {
   border: 0;
@@ -153,7 +153,11 @@
   display: flex;
   align-items: center;
   flex-shrink: 0;
+  gap: 8px;
 }
+.dowe-entry-chevron { font-size: 21px; color: var(--dowe-text-muted); }
+.dowe-entry-summary[aria-expanded="true"] .dowe-entry-chevron { transform: rotate(90deg); }
+#dictionary-status:empty { display: none; }
 .dowe-entry-star.starred {
   color: var(--dowe-accent);
 }

@@ -115,7 +115,9 @@
         <div id="mode-filter-chips" class="dowe-chip-filter"></div>
 
         <ul id="entries-list" class="dowe-entries-list"></ul>
-        <p id="empty-state" class="dowe-muted dowe-small dowe-empty" hidden></p>
+        <p id="empty-state" class="dowe-muted dowe-small dowe-empty" role="status" hidden></p>
+        <button id="clear-filters-btn" class="dowe-btn" type="button" hidden>Clear filters</button>
+        <p id="dictionary-status" class="dowe-muted dowe-small" role="status"></p>
 
         <div class="dowe-dict-footer">
           <button id="export-glossary-btn" class="dowe-btn" type="button">
@@ -151,6 +153,7 @@
           </div>
           <div class="dowe-entry-meta">
             <span class="dowe-entry-star" aria-hidden="true"></span>
+            <span class="dowe-entry-chevron" aria-hidden="true">›</span>
           </div>
         </button>
         <div class="dowe-entry-detail" hidden>
