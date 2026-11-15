@@ -1,0 +1,40 @@
+# Local AI-agent setup and workflow documentation
+/.agents/
+/.claude/
+/.codex/
+/AGENTS.md
+/CLAUDE.md
+/skills-lock.json
+/docs/agents/
+
+# Local prototypes, design references, and promotional experiments
+/.scratch/
+/videoplayback.mp4
+
+# Dependencies, generated packages, and development caches
+node_modules/
+/dist/
+/coverage/
+.cache/
+/playwright-report/
+/test-results/
+
+# Local environment configuration (keep shareable examples)
+.env
+.env.*
+!.env.example
+!.env.sample
+
+# Editor settings and temporary files
+.vscode/
+.idea/
+*.log
+*.tmp
+*.swp
+*.swo
+*~
+
+# Operating-system metadata
+.DS_Store
+Thumbs.db
+Desktop.ini

@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dowe Settings</title>
+    <link rel="stylesheet" href="../styles/shared.css" />
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body class="dowe-options-page">
+    <div class="dowe-page">
+      <header class="dowe-header">
+        <div class="dowe-header-title">
+          <img class="dowe-logo" src="../../icons/logo.svg" alt="" />
+          <h1>dowe</h1>
+        </div>
+        <p class="dowe-slogan">A little clarity, wherever you read.</p>
+      </header>
+
+      <!-- ============ ONBOARDING (first run) ============ -->
+      <main id="onboarding" class="dowe-card" hidden>
+        <h2 id="onboarding-welcome-title">Welcome to Dowe</h2>
+        <p id="onboarding-welcome-body" class="dowe-muted"></p>
+
+        <section class="dowe-step">
+          <h3>
+            <span class="dowe-step-num">1</span>
+            <span id="onboarding-step1-label"></span>
+          </h3>
+          <label class="dowe-field">
+            <span>AI provider</span>
+            <select id="ob-provider" class="dowe-select">
+              <option value="anthropic">Anthropic (Claude)</option>
+              <option value="openai">OpenAI</option>
+              <option value="gemini">Google Gemini</option>
+              <option value="custom">
+                Custom endpoint (OpenAI-compatible)
+              </option>
+            </select>
+          </label>
+        </section>
+
+        <section class="dowe-step">
+          <h3>
+            <span class="dowe-step-num">2</span>
+            <span id="onboarding-step2-label"></span>
+          </h3>
+          <label class="dowe-field">
+            <span>API key</span>
+            <input
+              id="ob-api-key"
+              class="dowe-input"
+              type="password"
+              autocomplete="off"
+              placeholder="sk-…"
+            />
+          </label>
+          <label class="dowe-field" id="ob-endpoint-field" hidden>
+            <span>Custom endpoint URL</span>
+            <input
+              id="ob-custom-endpoint"
+              class="dowe-input"
+              type="url"
+              placeholder="https://…/v1/chat/completions"
+            />
+          </label>
+          <p class="dowe-muted dowe-small">
+            <a
+              id="ob-key-link"
+              href="#"
+              target="_blank"
+              rel="noopener noreferrer"
+              >Where do I get a key?</a
+            >
+          </p>
+          <div class="dowe-row">
+            <button id="ob-test-btn" type="button" class="dowe-btn">
+              Test connection
+            </button>
+            <span id="ob-test-status" class="dowe-small" role="status"></span>
+          </div>
+        </section>
+
+        <details class="dowe-step">
+          <summary>
+            <span class="dowe-step-num">3</span> Preferences (optional)
+          </summary>
+          <label class="dowe-field">
+            <span>Target language</span>
+            <select id="ob-target-language" class="dowe-select"></select>
+          </label>
+          <label class="dowe-field">
+            <span>Default mode</span>
+            <select id="ob-default-mode" class="dowe-select"></select>
+          </label>
+          <label class="dowe-field">
+            <span>Default level</span>
+            <select id="ob-default-level" class="dowe-select"></select>
+          </label>
+          <div class="dowe-field">
+            <span>Keyboard shortcut</span>
+            <div id="ob-shortcut-display" class="dowe-muted dowe-small"></div>
+          </div>
+        </details>
+
+        <p id="ob-skip-warning" class="dowe-error-text dowe-small" hidden></p>
+
+        <div class="dowe-row dowe-row-end">
+          <button id="ob-skip-btn" type="button" class="dowe-btn">
+            Skip for now
+          </button>
+          <button
+            id="ob-finish-btn"
+            type="button"
+            class="dowe-btn dowe-btn-primary"
+            disabled
+          >
+            Finish setup
+          </button>
+        </div>
+
+        <p id="ob-hint" class="dowe-hint" hidden></p>
+      </main>
+
+      <!-- ============ SETTINGS (post-onboarding) ============ -->
+      <main id="settings" class="dowe-card" hidden>
+        <header class="dowe-settings-heading">
+          <h2 class="dowe-page-title">Settings</h2>
+          <p class="dowe-settings-description">
+            A few preferences. A better reading flow.
+          </p>
+        </header>
+        <section class="dowe-section">
+          <h3>AI connection</h3>
+          <p class="dowe-section-description">
+            Choose who helps you understand what you read.
+          </p>
+          <label class="dowe-field">
+            <span>AI provider</span>
+            <select id="set-provider" class="dowe-select">
+              <option value="anthropic">Anthropic (Claude)</option>
+              <option value="openai">OpenAI</option>
+              <option value="gemini">Google Gemini</option>
+              <option value="custom">
+                Custom endpoint (OpenAI-compatible)
+              </option>
+            </select>
+          </label>
+          <label class="dowe-field">
+            <span>API key</span>
+            <input
+              id="set-api-key"
+              class="dowe-input"
+              type="password"
+              autocomplete="off"
+            />
+          </label>
+          <label class="dowe-field" id="set-endpoint-field" hidden>
+            <span>Custom endpoint URL</span>
+            <input id="set-custom-endpoint" class="dowe-input" type="url" />
+          </label>
+          <div class="dowe-row">
+            <button
+              id="set-test-btn"
+              type="button"
+              class="dowe-btn dowe-btn-primary"
+            >
+              Test connection
+            </button>
+            <span id="set-test-status" class="dowe-small" role="status"></span>
+          </div>
+        </section>
+
+        <section class="dowe-section">
+          <h3>Reading preferences</h3>
+          <p class="dowe-section-description">
+            Make every answer feel right for you.
+          </p>
+          <label class="dowe-field">
+            <span>Target language</span>
+            <select id="set-target-language" class="dowe-select"></select>
+          </label>
+          <label class="dowe-field">
+            <span>Default mode</span>
+            <select id="set-default-mode" class="dowe-select"></select>
+          </label>
+          <label class="dowe-checkbox-field">
+            <input id="set-auto-save" type="checkbox" role="switch" />
+            <span>Auto-save lookups to dictionary</span>
+          </label>
+        </section>
+
+        <section class="dowe-section">
+          <h3>Appearance</h3>
+          <div class="dowe-palette-note">
+            <span class="dowe-palette-dot" aria-hidden="true"></span>Lavender
+            <span class="dowe-muted">· a little colour, plenty of space</span>
+          </div>
+          <label class="dowe-field">
+            <span>Theme</span>
+            <select id="set-theme" class="dowe-select">
+              <option value="auto">Match system</option>
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+            </select>
+          </label>
+        </section>
+
+        <details class="dowe-advanced">
+          <summary>
+            <span>Advanced settings</span
+            ><span class="dowe-advanced-description"
+              >Model, shortcuts, sites &amp; team glossary</span
+            >
+          </summary>
+          <section class="dowe-section">
+            <h3>Answer details</h3>
+            <label class="dowe-field" id="set-model-field">
+              <span
+                >Model
+                <span class="dowe-muted dowe-small">(optional)</span></span
+              >
+              <input
+                id="set-model"
+                class="dowe-input"
+                type="text"
+                placeholder="Auto-detect"
+              />
+            </label>
+            <p class="dowe-muted dowe-small">
+              Leave blank to use the provider default. Gemini uses
+              <code>gemini-3.5-flash-lite</code>.
+            </p>
+            <label class="dowe-field">
+              <span>Default level</span>
+              <select id="set-default-level" class="dowe-select"></select>
+            </label>
+            <label class="dowe-checkbox-field">
+              <input id="set-include-context" type="checkbox" />
+              <span>Include surrounding sentence as context</span>
+            </label>
+          </section>
+          <section class="dowe-section">
+            <h3>Keyboard shortcut</h3>
+            <div class="dowe-row">
+              <span id="set-shortcut-display" class="dowe-muted"></span>
+              <button
+                id="set-change-shortcut-btn"
+                type="button"
+                class="dowe-btn"
+              >
+                Change shortcut
+              </button>
+            </div>
+            <p class="dowe-muted dowe-small">
+              Chrome doesn't let extensions rebind shortcuts from their own
+              settings page — this opens Chrome's shortcut manager.
+            </p>
+          </section>
+
+          <section class="dowe-section">
+            <h3>Disabled sites</h3>
+            <p class="dowe-muted dowe-small">
+              Dowe won't activate on these domains.
+            </p>
+            <div class="dowe-row">
+              <input
+                id="set-disabled-site-input"
+                class="dowe-input"
+                type="text"
+                placeholder="example.com"
+              />
+              <button
+                id="set-add-disabled-site-btn"
+                type="button"
+                class="dowe-btn"
+              >
+                Add
+              </button>
+            </div>
+            <ul id="set-disabled-sites-list" class="dowe-chip-list"></ul>
+          </section>
+
+          <section class="dowe-section">
+            <h3>Team glossary</h3>
+            <p class="dowe-muted dowe-small">
+              Import a <code>dowe-glossary.json</code> file exported from a
+              teammate's dictionary. Imported terms are checked before every AI
+              lookup.
+            </p>
+            <div class="dowe-row">
+              <input
+                id="set-glossary-file"
+                type="file"
+                accept="application/json"
+              />
+              <button
+                id="set-import-glossary-btn"
+                type="button"
+                class="dowe-btn"
+              >
+                Import
+              </button>
+            </div>
+            <p id="set-glossary-status" class="dowe-small" role="status"></p>
+          </section>
+        </details>
+
+        <p id="set-saved-toast" class="dowe-hint" role="status" hidden></p>
+      </main>
+    </div>
+
+    <script type="module" src="options.js"></script>
+  </body>
+</html>

@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dowe Dictionary</title>
+    <link rel="stylesheet" href="../styles/shared.css" />
+    <link rel="stylesheet" href="dictionary.css" />
+  </head>
+  <body>
+    <div class="dowe-dict">
+      <header class="dowe-dict-header">
+        <div class="dowe-dict-title">
+          <span class="dowe-brand"
+            ><img
+              class="dowe-logo"
+              src="../../icons/logo.svg"
+              alt=""
+            />dowe</span
+          >
+        </div>
+        <div class="dowe-dict-header-actions">
+          <button
+            id="open-full-view-btn"
+            class="dowe-btn dowe-btn-icon"
+            title="Open in a tab"
+            aria-label="Open in a tab"
+            type="button"
+          >
+            ↗
+          </button>
+          <button id="open-settings-btn" class="dowe-btn" type="button">
+            Settings
+          </button>
+        </div>
+      </header>
+
+      <section
+        id="update-notice"
+        class="dowe-update-notice"
+        aria-live="polite"
+        hidden
+      >
+        <div>
+          <strong id="update-notice-title"></strong>
+          <p>A new version is installed. See what changed on GitHub.</p>
+        </div>
+        <div class="dowe-update-notice-actions">
+          <button
+            id="open-release-btn"
+            class="dowe-btn dowe-btn-primary"
+            type="button"
+          >
+            What's new
+          </button>
+          <button
+            id="dismiss-update-btn"
+            class="dowe-btn dowe-btn-icon"
+            type="button"
+            aria-label="Dismiss"
+          >
+            &times;
+          </button>
+        </div>
+      </section>
+
+      <h1 class="dowe-dict-heading">Dictionary</h1>
+      <nav class="dowe-tabs" role="tablist" aria-label="Dictionary views">
+        <button
+          id="tab-list"
+          class="dowe-tab dowe-tab-active"
+          role="tab"
+          aria-controls="panel-list"
+          aria-selected="true"
+          type="button"
+        >
+          All entries
+        </button>
+        <button
+          id="tab-dashboard"
+          class="dowe-tab"
+          role="tab"
+          aria-controls="panel-dashboard"
+          aria-selected="false"
+          type="button"
+        >
+          Frequency
+        </button>
+      </nav>
+
+      <section
+        id="panel-list"
+        class="dowe-panel"
+        role="tabpanel"
+        aria-labelledby="tab-list"
+      >
+        <div class="dowe-dict-controls">
+          <input
+            id="search-input"
+            class="dowe-input"
+            type="search"
+            placeholder="Find a word…"
+            aria-label="Search dictionary"
+          />
+          <select
+            id="sort-select"
+            class="dowe-select"
+            aria-label="Sort entries"
+          >
+            <option value="date-desc">Newest</option>
+            <option value="date-asc">Oldest</option>
+            <option value="frequency">Frequent</option>
+          </select>
+        </div>
+        <div id="mode-filter-chips" class="dowe-chip-filter"></div>
+
+        <ul id="entries-list" class="dowe-entries-list"></ul>
+        <p id="empty-state" class="dowe-muted dowe-small dowe-empty" hidden></p>
+
+        <div class="dowe-dict-footer">
+          <button id="export-glossary-btn" class="dowe-btn" type="button">
+            Export as team glossary
+          </button>
+          <button
+            id="clear-all-btn"
+            class="dowe-btn dowe-error-text"
+            type="button"
+          >
+            Clear all
+          </button>
+        </div>
+      </section>
+
+      <section
+        id="panel-dashboard"
+        class="dowe-panel"
+        role="tabpanel"
+        aria-labelledby="tab-dashboard"
+        hidden
+      >
+        <div id="dashboard-root"></div>
+      </section>
+    </div>
+
+    <template id="entry-template">
+      <li class="dowe-entry">
+        <button class="dowe-entry-summary" type="button">
+          <div class="dowe-entry-summary-main">
+            <span class="dowe-entry-term"></span>
+            <span class="dowe-entry-snippet dowe-muted"></span>
+          </div>
+          <div class="dowe-entry-meta">
+            <span class="dowe-entry-star" aria-hidden="true"></span>
+          </div>
+        </button>
+        <div class="dowe-entry-detail" hidden>
+          <span class="dowe-badge dowe-entry-mode"></span>
+          <span class="dowe-entry-date dowe-muted dowe-small"></span>
+          <p class="dowe-entry-answer"></p>
+          <p class="dowe-entry-source dowe-muted dowe-small"></p>
+          <div class="dowe-entry-actions">
+            <button class="dowe-btn dowe-entry-star-btn" type="button">
+              Star
+            </button>
+            <button class="dowe-btn dowe-entry-rerun-btn" type="button">
+              Re-run
+            </button>
+            <button
+              class="dowe-btn dowe-error-text dowe-entry-delete-btn"
+              type="button"
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      </li>
+    </template>
+
+    <script type="module" src="dictionary.js"></script>
+  </body>
+</html>

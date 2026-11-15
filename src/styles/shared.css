@@ -1,0 +1,231 @@
+/* Shared design tokens + base styles for Dowe's own UI surfaces:
+   options page, dictionary popup, and the in-page result popup
+   (injected into a shadow root by the content script). */
+
+:root,
+:host {
+  color-scheme: light;
+  --dowe-bg: #ffffff;
+  --dowe-bg-elevated: #faf8fd;
+  --dowe-border: #eae5f0;
+  --dowe-text: #241f2e;
+  --dowe-text-muted: #746c80;
+  --dowe-accent: #7655c5;
+  --dowe-accent-soft: #f4effc;
+  --dowe-accent-contrast: #ffffff;
+  --dowe-success: #1f9d55;
+  --dowe-error: #d9432f;
+  --dowe-warning: #b5820a;
+  --dowe-shadow:
+    0 8px 30px rgba(52, 31, 83, 0.09), 0 1px 3px rgba(52, 31, 83, 0.04);
+  --dowe-radius: 12px;
+  --dowe-radius-sm: 6px;
+  --dowe-font:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root,
+  :host {
+    color-scheme: dark;
+    --dowe-bg: #1d1924;
+    --dowe-bg-elevated: #26202f;
+    --dowe-border: #3d344a;
+    --dowe-text: #f3eff8;
+    --dowe-text-muted: #b4a9c3;
+    --dowe-accent: #c4abfa;
+    --dowe-accent-soft: #342745;
+    --dowe-accent-contrast: #241732;
+    --dowe-shadow: 0 8px 24px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3);
+  }
+}
+
+:root[data-theme="dark"],
+:host([data-theme="dark"]) {
+  color-scheme: dark;
+  --dowe-bg: #1d1924;
+  --dowe-bg-elevated: #26202f;
+  --dowe-border: #3d344a;
+  --dowe-text: #f3eff8;
+  --dowe-text-muted: #b4a9c3;
+  --dowe-accent: #c4abfa;
+  --dowe-accent-soft: #342745;
+  --dowe-accent-contrast: #241732;
+  --dowe-shadow: 0 8px 24px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+:root[data-theme="light"],
+:host([data-theme="light"]) {
+  color-scheme: light;
+  --dowe-bg: #ffffff;
+  --dowe-bg-elevated: #faf8fd;
+  --dowe-border: #eae5f0;
+  --dowe-text: #241f2e;
+  --dowe-text-muted: #746c80;
+  --dowe-accent: #7655c5;
+  --dowe-accent-soft: #f4effc;
+  --dowe-accent-contrast: #ffffff;
+  --dowe-shadow:
+    0 8px 30px rgba(52, 31, 83, 0.09), 0 1px 3px rgba(52, 31, 83, 0.04);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--dowe-font);
+  color: var(--dowe-text);
+  background: var(--dowe-bg);
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--dowe-font);
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.dowe-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 650;
+  letter-spacing: -0.025em;
+}
+
+.dowe-logo {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+}
+
+input[type="checkbox"] {
+  accent-color: var(--dowe-accent);
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+a:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--dowe-accent);
+  outline-offset: 2px;
+}
+
+.dowe-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--dowe-text);
+  border-radius: var(--dowe-radius-sm);
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.dowe-btn:hover {
+  background: var(--dowe-accent-soft);
+  color: var(--dowe-accent);
+}
+
+.dowe-btn-primary {
+  background: var(--dowe-accent);
+  border-color: var(--dowe-accent);
+  color: var(--dowe-accent-contrast);
+  font-weight: 600;
+}
+
+.dowe-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.dowe-btn-primary:hover {
+  background: var(--dowe-accent);
+  color: var(--dowe-accent-contrast);
+  filter: brightness(0.95);
+}
+
+.dowe-btn-saved {
+  background: var(--dowe-accent-soft);
+  color: var(--dowe-accent);
+}
+
+.dowe-btn-icon {
+  padding: 6px;
+  width: 30px;
+  height: 30px;
+  justify-content: center;
+}
+
+.dowe-input,
+.dowe-select,
+.dowe-textarea {
+  border: 1px solid var(--dowe-border);
+  background: var(--dowe-bg);
+  color: var(--dowe-text);
+  border-radius: var(--dowe-radius-sm);
+  padding: 8px 10px;
+  font-size: 13px;
+  width: 100%;
+}
+
+.dowe-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 0;
+  background: transparent;
+  color: var(--dowe-text-muted);
+}
+
+.dowe-badge-accent {
+  color: var(--dowe-accent);
+  border-color: var(--dowe-accent);
+}
+
+.dowe-muted {
+  color: var(--dowe-text-muted);
+}
+
+.dowe-error-text {
+  color: var(--dowe-error);
+}
+
+.dowe-spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--dowe-border);
+  border-top-color: var(--dowe-accent);
+  animation: dowe-spin 0.7s linear infinite;
+}
+
+@keyframes dowe-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dowe-spinner {
+    animation: none;
+  }
+}
