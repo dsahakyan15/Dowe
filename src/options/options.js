@@ -59,6 +59,18 @@ function toggleCustomEndpointField(fieldEl, provider) {
   fieldEl.hidden = provider !== "custom";
 }
 
+function updateKeyLink(link, provider) {
+  const info = PROVIDER_INFO[provider];
+  link.parentElement.hidden = !info?.keyUrl;
+  if (info?.keyUrl) {
+    link.href = info.keyUrl;
+    link.textContent = `Get API key from ${info.label} ↗`;
+    link.setAttribute("aria-describedby", `${link.id}-note`);
+  } else {
+    link.removeAttribute("href");
+  }
+}
+
 async function testConnection({ provider, apiKey, model, customEndpoint }) {
   if (provider === "custom" && customEndpoint) {
     const granted = await ensureHostPermission(customEndpoint);
@@ -157,25 +169,15 @@ async function showOnboarding(settings) {
   defaultLevelSelect.value = settings.defaultLevel;
 
   toggleCustomEndpointField(endpointField, providerSelect.value);
-  updateKeyLink();
+  updateKeyLink(keyLink, providerSelect.value);
 
   const commands = await chrome.commands.getAll();
   const lookupCmd = commands.find((c) => c.name === "trigger-lookup");
   shortcutDisplay.textContent = lookupCmd?.shortcut || "Alt+E";
 
-  function updateKeyLink() {
-    const info = PROVIDER_INFO[providerSelect.value];
-    if (info.keyUrl) {
-      keyLink.hidden = false;
-      keyLink.href = info.keyUrl;
-    } else {
-      keyLink.hidden = true;
-    }
-  }
-
   providerSelect.addEventListener("change", () => {
     toggleCustomEndpointField(endpointField, providerSelect.value);
-    updateKeyLink();
+    updateKeyLink(keyLink, providerSelect.value);
     finishBtn.disabled = true;
     testStatus.textContent = "";
   });
@@ -254,6 +256,7 @@ async function showSettingsView(settings) {
 
   const providerSelect = document.getElementById("set-provider");
   const apiKeyInput = document.getElementById("set-api-key");
+  const keyLink = document.getElementById("set-key-link");
   const modelInput = document.getElementById("set-model");
   const endpointField = document.getElementById("set-endpoint-field");
   const endpointInput = document.getElementById("set-custom-endpoint");
@@ -290,6 +293,7 @@ async function showSettingsView(settings) {
   autoSaveCheckbox.checked = !!settings.autoSaveToDictionary;
   themeSelect.value = settings.theme;
   toggleCustomEndpointField(endpointField, settings.provider);
+  updateKeyLink(keyLink, settings.provider);
   applyTheme(settings.theme);
 
   savedToast.textContent = t("settingsSaved");
@@ -315,6 +319,7 @@ async function showSettingsView(settings) {
 
   providerSelect.addEventListener("change", () => {
     toggleCustomEndpointField(endpointField, providerSelect.value);
+    updateKeyLink(keyLink, providerSelect.value);
     persist({ provider: providerSelect.value });
   });
   apiKeyInput.addEventListener("change", () => persist({ apiKey: apiKeyInput.value.trim() }));

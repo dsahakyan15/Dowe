@@ -259,6 +259,55 @@
 .dowe-test-fail {
   color: var(--dowe-error);
 }
+.dowe-key-help {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0 0 20px;
+}
+.dowe-key-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 9px 12px;
+  border: 1px solid var(--dowe-accent);
+  border-radius: var(--dowe-radius-sm);
+  background: var(--dowe-accent-soft);
+  color: var(--dowe-accent);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.dowe-key-link:hover {
+  text-decoration-thickness: 2px;
+}
+.dowe-connection-test {
+  min-height: 40px;
+  padding: 10px 14px;
+  border-color: var(--dowe-field-border);
+  background: var(--dowe-bg-elevated);
+  font-size: 13px;
+  font-weight: 600;
+}
+.dowe-connection-test:disabled {
+  cursor: wait;
+}
+.dowe-connection-help {
+  margin: 0 0 12px;
+  color: var(--dowe-text-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.dowe-connection-actions [role="status"] {
+  flex-basis: 100%;
+  overflow-wrap: anywhere;
+}
+.dowe-connection-actions [role="status"]:empty {
+  display: none;
+}
 @media (max-width: 420px) {
   .dowe-page {
     width: 100%;

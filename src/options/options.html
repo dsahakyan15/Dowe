@@ -64,17 +64,22 @@
               placeholder="https://…/v1/chat/completions"
             />
           </label>
-          <p class="dowe-muted dowe-small">
+          <div class="dowe-key-help">
             <a
               id="ob-key-link"
+              class="dowe-key-link"
               href="#"
               target="_blank"
               rel="noopener noreferrer"
-              >Where do I get a key?</a
+              >Get an API key ↗</a
             >
+            <span class="dowe-muted dowe-small" id="ob-key-link-note">Opens your provider’s website in a new tab.</span>
+          </div>
+          <p id="ob-test-help" class="dowe-connection-help">
+            Paste your key above, then test the connection. A successful test enables Finish setup. If you edit the connection details, test again.
           </p>
-          <div class="dowe-row">
-            <button id="ob-test-btn" type="button" class="dowe-btn">
+          <div class="dowe-row dowe-connection-actions">
+            <button id="ob-test-btn" type="button" class="dowe-btn dowe-connection-test" aria-describedby="ob-test-help">
               Test connection
             </button>
             <span id="ob-test-status" class="dowe-small" role="status"></span>
@@ -113,6 +118,7 @@
             id="ob-finish-btn"
             type="button"
             class="dowe-btn dowe-btn-primary"
+            aria-describedby="ob-test-help"
             disabled
           >
             Finish setup
@@ -160,11 +166,15 @@
             <span>Custom endpoint URL</span>
             <input id="set-custom-endpoint" class="dowe-input" type="url" />
           </label>
-          <div class="dowe-row">
+          <div class="dowe-key-help">
+            <a id="set-key-link" class="dowe-key-link" href="#" target="_blank" rel="noopener noreferrer">Get an API key ↗</a>
+            <span class="dowe-muted dowe-small" id="set-key-link-note">Opens your provider’s website in a new tab.</span>
+          </div>
+          <div class="dowe-row dowe-connection-actions">
             <button
               id="set-test-btn"
               type="button"
-              class="dowe-btn dowe-btn-primary"
+              class="dowe-btn dowe-connection-test"
             >
               Test connection
             </button>
