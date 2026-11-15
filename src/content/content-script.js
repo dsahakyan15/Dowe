@@ -14,6 +14,16 @@
   let shadowRoot = null;
   let icon = null;
   let popup = null;
+  let mountPromise = null;
+
+  // Page "popups" this UI has to work inside of: native <dialog>s and ARIA
+  // modals. Their focus traps, inertness and outside-click handlers treat
+  // anything mounted elsewhere in the document as "outside".
+  const MODAL_SELECTOR =
+    'dialog[open], [role="dialog"], [role="alertdialog"], [aria-modal="true"]';
+  const SUPPORTS_POPOVER =
+    typeof HTMLElement !== "undefined" &&
+    "showPopover" in HTMLElement.prototype;
 
   let currentSelection = null; // { text, contextSentence, rect, tooLong }
   let activeRequestId = null;
@@ -38,7 +48,8 @@
     const stringsModule = await importModule("src/lib/strings.js");
     STRINGS = stringsModule.STRINGS;
 
-    await mountShadowRoot();
+    // The UI itself is mounted lazily on the first selection, so frames the
+    // user never selects text in stay untouched.
     attachListeners();
 
     chrome.storage.onChanged.addListener((changes, area) => {
@@ -64,13 +75,24 @@
     );
   }
 
+  function ensureMounted() {
+    if (!mountPromise) mountPromise = mountShadowRoot();
+    return mountPromise;
+  }
+
   async function mountShadowRoot() {
     hostEl = document.createElement("div");
     hostEl.id = "dowe-host";
-    hostEl.style.all = "initial";
+    // `all: initial` also neutralises the UA popover styles (inset, margin,
+    // border, background, display:none while closed).
+    hostEl.style.cssText = "all: initial; position: fixed; top: 0; left: 0;";
+    // A manual popover lives in the top layer, so the UI is painted above
+    // modal dialogs and is not clipped or offset by a transformed ancestor.
+    if (SUPPORTS_POPOVER) hostEl.setAttribute("popover", "manual");
     document.documentElement.appendChild(hostEl);
     shadowRoot = hostEl.attachShadow({ mode: "closed" });
     applyTheme();
+    shieldHostEvents();
 
     try {
       const cssUrl = chrome.runtime.getURL("src/styles/shared.css");
@@ -118,6 +140,69 @@
     );
   }
 
+  // Keep interactions with Dowe's UI from reaching page-level handlers that
+  // would dismiss the page's own popup (outside-click, Escape) or pull focus
+  // back into it (focus traps).
+  function shieldHostEvents() {
+    for (const type of [
+      "pointerdown",
+      "mousedown",
+      "touchstart",
+      "click",
+      "focusin",
+    ]) {
+      hostEl.addEventListener(type, (e) => e.stopPropagation(), {
+        passive: true,
+      });
+    }
+    hostEl.addEventListener("keydown", (e) => {
+      e.stopPropagation();
+      if (e.key === "Escape") {
+        // Close Dowe only, not the dialog it is shown in.
+        e.preventDefault();
+        hideAll();
+      }
+    });
+  }
+
+  function findModalAncestor(node) {
+    let current = node;
+    while (current) {
+      if (
+        current.nodeType === Node.ELEMENT_NODE &&
+        current.matches(MODAL_SELECTOR)
+      )
+        return current;
+      // Step out of shadow roots as well as up the tree.
+      current = current.parentNode || current.host || null;
+    }
+    return null;
+  }
+
+  // Mount the host inside the popup that holds the selection (so the page
+  // counts it as part of that popup) and lift it to the top of the top layer.
+  function placeHost(anchorNode) {
+    if (!hostEl) return;
+    const parent =
+      (SUPPORTS_POPOVER && findModalAncestor(anchorNode)) ||
+      document.documentElement;
+    try {
+      if (hostEl.parentNode !== parent) parent.appendChild(hostEl);
+    } catch {
+      if (!hostEl.isConnected) document.documentElement.appendChild(hostEl);
+    }
+    if (!SUPPORTS_POPOVER) return;
+    // Re-showing moves the host above anything opened since. Skip it while
+    // focus is inside the UI: hiding a popover would move focus away.
+    if (shadowRoot.activeElement) return;
+    try {
+      if (hostEl.matches(":popover-open")) hostEl.hidePopover();
+      hostEl.showPopover();
+    } catch {
+      /* stays where it is; still usable outside the top layer */
+    }
+  }
+
   function applyTheme() {
     if (!hostEl) return;
     const theme = settings.theme;
@@ -160,11 +245,11 @@
     });
   }
 
-  function handleSelectionChange() {
+  async function handleSelectionChange() {
     const selection = window.getSelection();
     if (!selection || selection.isCollapsed) {
       currentSelection = null;
-      icon.hide();
+      icon?.hide();
       return;
     }
 
@@ -172,7 +257,7 @@
     const text = rawText.trim();
     if (!text) {
       currentSelection = null;
-      icon.hide();
+      icon?.hide();
       return;
     }
 
@@ -187,17 +272,28 @@
 
     const rect = range.getBoundingClientRect();
     if (!rect || (rect.width === 0 && rect.height === 0)) {
-      icon.hide();
+      icon?.hide();
       return;
     }
 
-    currentSelection = {
+    const next = {
       text,
       rect,
+      anchorNode: range.commonAncestorContainer,
       tooLong: text.length > MAX_SELECTION_LENGTH,
       contextSentence: extractContextSentence(range, text),
     };
+    currentSelection = next;
 
+    try {
+      await ensureMounted();
+    } catch (err) {
+      log("mount failed", err);
+      return;
+    }
+    if (currentSelection !== next) return; // selection changed while mounting
+
+    placeHost(next.anchorNode);
     icon.show(rect);
   }
 
@@ -254,8 +350,15 @@
   async function runLookup({ mode, level, skipGlossary, focus = false }) {
     if (!currentSelection) return;
     const selection = currentSelection;
+    try {
+      await ensureMounted();
+    } catch (err) {
+      log("mount failed", err);
+      return;
+    }
     lastLookupParams = { mode, level, skipGlossary };
 
+    placeHost(selection.anchorNode);
     icon.hide();
     popup.showLoading({ text: selection.text, focus, mode: mode || settings.defaultMode });
     popup.position(selection.rect);
